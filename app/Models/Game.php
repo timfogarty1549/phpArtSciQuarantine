@@ -9,28 +9,25 @@ class Game extends Model
     
     protected $table = self::TABLE_NAME;
     protected $primaryKey = 'id';
-    protected $fillable = ['raw'];
+    protected $fillable = ['game_code', 'raw'];
     protected $hidden = [];
     
-    public $gameObj;
-    
-    public function fetch($id)
+    /**
+     * @param GameState $value
+     */
+    public function setGameStateAttribute(GameState $value)
     {
-        $this->find($id);
-        $this->game = json_decode($this->raw);
-        return $this;
+        $this->attributes['raw'] = json_encode($value);
     }
     
-    public function store()
+    public function getGameStateAttribute($value): GameState
     {
-        $this->raw = json_encode($this->gameObj);
-        return $this->save();
+        return new GameState($this->raw);
     }
-    
     
     public function history()
     {
-        return $this->hasMany(Journal::class,'game_id');
+        return $this->hasMany(Journal::class,'game_code');
     }
 }
 

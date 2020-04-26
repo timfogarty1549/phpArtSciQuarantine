@@ -9,101 +9,135 @@ class Board
     const MOD_INNER = 4;
     const MOD_OUTER = 7;
     
-    static private $innerRing = [
-        [0, 0, Category::PHYS, 3],
-        [0, 1, Category::MATH, 3],
-        [0, 2, Category::MISC, 2],
-        [0, 3, Category::BIO, 2],
-        
-        [0, 4, Category::TECH, 3],
-        [0, 5, Category::BIO, 3],
-        [0, 6, Category::MATH, 2],
-        [0, 7, Category::CHEM, 2],
-        
-        [0, 8, Category::MISC, 3],
-        [0, 9, Category::CHEM, 3],
-        [0, 10, Category::BIO, 2],
-        [0, 11, Category::PHYS, 2],
-        
-        [0, 12, Category::MATH, 3],
-        [0, 13, Category::PHYS, 3],
-        [0, 14, Category::CHEM, 2],
-        [0, 15, Category::TECH, 2],
-        
-        [0, 16, Category::BIO, 3],
-        [0, 17, Category::TECH, 3],
-        [0, 18, Category::PHYS, 2],
-        [0, 19, Category::MISC, 2],
-        
-        [0, 20, Category::CHEM, 3],
-        [0, 21, Category::MISC, 3],
-        [0, 22, Category::TECH, 2],
-        [0, 23, Category::MATH, 2],
-    ];
+    /**
+     * 
+     * @var Position[]
+     */
+    static private $innerRing;
     
-    static private $bridge = [
-        [1, 0, Category::DUEL, 0],
-        [1, 1, Category::GENIUS, 0],
-        [1, 2, Category::DUEL, 0],
-        [1, 3, Category::GENIUS, 0],
-        [1, 4, Category::DUEL, 0],
-        [1, 5, Category::GENIUS, 0],
-    ];
+    /**
+     *
+     * @var Position[]
+     */
+    static private $bridge;
     
-    static private $outerRing = [
-        [2, 0, Category::MATH, 1],
-        [2, 1, Category::PHYS, 1],
-        [2, 2, Category::CHEM, 5],
-        [2, 3, Category::REPLICATION, 0],
-        [2, 4, Category::BIO, 2],
-        [2, 5, Category::MISC, 1],
-        [2, 6, Category::BIO, 3],
-        
-        [2, 7, Category::BIO, 1],
-        [2, 8, Category::TECH, 1],
-        [2, 9, Category::PHYS, 5],
-        [2, 10, Category::REROLL, 0],
-        [2, 11, Category::CHEM, 2],
-        [2, 12, Category::MATH, 1],
-        [2, 13, Category::CHEM, 3],
-        
-        [2, 14, Category::CHEM, 1],
-        [2, 15, Category::MISC, 1],
-        [2, 16, Category::TECH, 5],
-        [2, 17, Category::REPLICATION, 0],
-        [2, 18, Category::PHYS, 2],
-        [2, 19, Category::BIO, 1],
-        [2, 20, Category::PHYS, 3],
-        
-        [2, 21, Category::PHYS, 1],
-        [2, 22, Category::MATH, 1],
-        [2, 23, Category::MISC, 5],
-        [2, 24, Category::REROLL, 0],
-        [2, 25, Category::TECH, 2],
-        [2, 26, Category::CHEM, 1],
-        [2, 27, Category::TECH, 3],
-        
-        [2, 28, Category::TECH, 1],
-        [2, 29, Category::BIO, 1],
-        [2, 30, Category::MATH, 5],
-        [2, 31, Category::REPLICATION, 0],
-        [2, 32, Category::MISC, 2],
-        [2, 33, Category::PHYS, 1],
-        [2, 34, Category::MISC, 3],
-        
-        [2, 35, Category::MISC, 1],
-        [2, 36, Category::CHEM, 1],
-        [2, 37, Category::BIO, 5],
-        [2, 38, Category::REROLL, 0],
-        [2, 39, Category::MATH, 2],
-        [2, 40, Category::TECH, 1],
-        [2, 41, Category::MATH, 3],
-        
-        
-    ];
+    /**
+     *
+     * @var Position[]
+     */
+    static private $outer_ring;
+    
+    static private function initPositions()
+    {
+        if (empty(self::$innerRing)) {
+            self::$innerRing = [
+                new Position(0, 0, Category::PHYS, 3),
+                new Position(0, 1, Category::MATH, 3),
+                new Position(0, 2, Category::MISC, 2),
+                new Position(0, 3, Category::BIO, 2),
+                
+                new Position(0, 4, Category::TECH, 3),
+                new Position(0, 5, Category::BIO, 3),
+                new Position(0, 6, Category::MATH, 2),
+                new Position(0, 7, Category::CHEM, 2),
+                
+                new Position(0, 8, Category::MISC, 3),
+                new Position(0, 9, Category::CHEM, 3),
+                new Position(0, 10, Category::BIO, 2),
+                new Position(0, 11, Category::PHYS, 2),
+                
+                new Position(0, 12, Category::MATH, 3),
+                new Position(0, 13, Category::PHYS, 3),
+                new Position(0, 14, Category::CHEM, 2),
+                new Position(0, 15, Category::TECH, 2),
+                
+                new Position(0, 16, Category::BIO, 3),
+                new Position(0, 17, Category::TECH, 3),
+                new Position(0, 18, Category::PHYS, 2),
+                new Position(0, 19, Category::MISC, 2),
+                
+                new Position(0, 20, Category::CHEM, 3),
+                new Position(0, 21, Category::MISC, 3),
+                new Position(0, 22, Category::TECH, 2),
+                new Position(0, 23, Category::MATH, 2),
+            ];
+            
+            self::$bridge = [
+                new Position(1, 0, Category::DUEL, 0),
+                new Position(1, 1, Category::GENIUS, 0),
+                new Position(1, 2, Category::DUEL, 0),
+                new Position(1, 3, Category::GENIUS, 0),
+                new Position(1, 4, Category::DUEL, 0),
+                new Position(1, 5, Category::GENIUS, 0),
+            ];
+            
+            self::$outerRing = [
+                new Position(2, 0, Category::MATH, 1),
+                new Position(2, 1, Category::PHYS, 1),
+                new Position(2, 2, Category::CHEM, 5),
+                new Position(2, 3, Category::REPLICATION, 0),
+                new Position(2, 4, Category::BIO, 2),
+                new Position(2, 5, Category::MISC, 1),
+                new Position(2, 6, Category::BIO, 3),
+                
+                new Position(2, 7, Category::BIO, 1),
+                new Position(2, 8, Category::TECH, 1),
+                new Position(2, 9, Category::PHYS, 5),
+                new Position(2, 10, Category::REROLL, 0),
+                new Position(2, 11, Category::CHEM, 2),
+                new Position(2, 12, Category::MATH, 1),
+                new Position(2, 13, Category::CHEM, 3),
+                
+                new Position(2, 14, Category::CHEM, 1),
+                new Position(2, 15, Category::MISC, 1),
+                new Position(2, 16, Category::TECH, 5),
+                new Position(2, 17, Category::REPLICATION, 0),
+                new Position(2, 18, Category::PHYS, 2),
+                new Position(2, 19, Category::BIO, 1),
+                new Position(2, 20, Category::PHYS, 3),
+                
+                new Position(2, 21, Category::PHYS, 1),
+                new Position(2, 22, Category::MATH, 1),
+                new Position(2, 23, Category::MISC, 5),
+                new Position(2, 24, Category::REROLL, 0),
+                new Position(2, 25, Category::TECH, 2),
+                new Position(2, 26, Category::CHEM, 1),
+                new Position(2, 27, Category::TECH, 3),
+                
+                new Position(2, 28, Category::TECH, 1),
+                new Position(2, 29, Category::BIO, 1),
+                new Position(2, 30, Category::MATH, 5),
+                new Position(2, 31, Category::REPLICATION, 0),
+                new Position(2, 32, Category::MISC, 2),
+                new Position(2, 33, Category::PHYS, 1),
+                new Position(2, 34, Category::MISC, 3),
+                
+                new Position(2, 35, Category::MISC, 1),
+                new Position(2, 36, Category::CHEM, 1),
+                new Position(2, 37, Category::BIO, 5),
+                new Position(2, 38, Category::REROLL, 0),
+                new Position(2, 39, Category::MATH, 2),
+                new Position(2, 40, Category::TECH, 1),
+                new Position(2, 41, Category::MATH, 3),
+            ];
+        }
+    }
+
+    static public function getPosition($r, $i)
+    {
+        self::initPositions();
+    
+        switch($r) {
+            case 0: return self::$innerRing($i);
+            case 1: return self::$bridge($i);
+            case 2: return self::$outerRing($i);
+        }
+    }
     
     static public function findMoves($r, $p, $dice)
     {
+        self::initPositions();
+        
         switch ($r) {
             case 0:
                 return self::calcFromInnerRing($p, $dice);
@@ -283,6 +317,5 @@ class Board
         
         return $options;
     }
-    
 }
 

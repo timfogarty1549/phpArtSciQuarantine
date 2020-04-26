@@ -3,7 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use App\Models\GameState;
+use App\Models\Game;
 use App\Models\Journal;
 
 class CreateJournalTable extends Migration
@@ -22,7 +22,7 @@ class CreateJournalTable extends Migration
             $table->text('raw');
             $table->timestamps();
             
-            $table->foreign('game_id')->reference('id')->on(GameState::TABLE_NAME)->onDelete('cascade');
+            $table->foreign('game_id')->references('id')->on(Game::TABLE_NAME)->onDelete('cascade');
         });
     }
 

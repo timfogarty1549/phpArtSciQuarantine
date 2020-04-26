@@ -28,14 +28,26 @@ class Category
     public $score;
     public $goal;
     
-    function __construct($cat, $position, $gameLength) {
-        $this->cat = $cat;
-        $this->score = 0;
-        $this->goal = self::POINTS[$position][$gameLength];
+    function __construct($cat, $position=-1, $gameLength=-1) {
+        if (is_null($cat)) {
+            $this->cat = '';
+            $this->score = 0;
+            $this->goal = 0;
+            
+        } else if (is_string($cat)) {
+            $this->cat = $cat;
+            $this->score = 0;
+            $this->goal = self::POINTS[$position][$gameLength];
+            
+        } else {
+            $this->cat = $cat['cat'];
+            $this->score = $cat['score'];
+            $this->goal = $cat['goal'];           
+        }
     }
     
     function addPoints($score) {
-        $this->score = max($this->score+$score, $this->goal);
+        $this->score = max( 0, min($this->score + $score, $this->goal));
     }
 }
 
