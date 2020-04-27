@@ -8,9 +8,11 @@ class GameState
     const STATUS_PAUSED = 'PAUSED';
     const STATUS_ENDED = 'ENDED';
     
-    const STATUS_ROLL = 'ROLE';
+    const STATUS_ROLL = 'ROLL';
     const STATUS_MOVE = 'SELECT_MOVE';
     const STATUS_ANSWER = 'ANSWER_QUESTION';
+    const STATUS_DUEL = 'DUEL';
+    const STATUS_REPLICATION = 'REPLICATION';
     
     /**
      *
@@ -29,6 +31,12 @@ class GameState
      * @var integer;
      */
     var $gameLength;
+    
+    /**
+     * 
+     * @var boolean
+     */
+    var $winningSpree;
 
     /**
      * @var string
@@ -87,8 +95,8 @@ class GameState
                         break;
                     case 'possibleMoves':
                         $this->possibleMoves = [];
-                        foreach ($value as $move) {
-                            $this->possibleMoves[] = new Position($value);
+                        foreach ($value as $position) {
+                            $this->possibleMoves[] = new Position($position);
                         }
                         break;
                     case 'dice':
@@ -100,6 +108,15 @@ class GameState
                 }
             }
         }
+    }
+    
+    /**
+     * 
+     * @param integer $pid
+     * @return boolean
+     */
+    function isHost($pid) {
+        return $this->hostId == $pid;
     }
 
     /**
@@ -146,7 +163,8 @@ class GameState
     public function rejectPlayer($player_id)
     {
         if (!empty($this->players[$player_id])) {
-            $this->players[$player_id] = null;
+//            $this->players[$player_id] = null;
+            unset($this->players[$player_id]);          // TODO: this will mess up the numbering, need player id
         }
     }
     
@@ -172,39 +190,43 @@ class GameState
     
     public function setInitPosition($player_id, $ring, $index)
     {
-        if (!empty($this->players[$player_id])) {
-            $this->players[$player_id]->move($ring, $index);
-        }
+        $position = Board::getPosition($ring, $index);
+        $this->players[$player_id]->currentPosition = $position;
     }
     
     public function setStartingPlayer($player_id)
     {
-        $this->current_player = $player_id;
+        $this->currentPlayer = $player_id;
     }
     
     public function rollDice()
     {
         $this->currentCategory = '';
-        $player = $this->players[$this->current_player];
+        $player = $this->players[$this->currentPlayer];
         $this->dice->rollDice();
-        $this->possibleMoves = Board::findMoves($player->ring, $player->index, $this->dice->value);
+        $this->possibleMoves = Board::findMoves($player->currentPosition, $this->dice->value);
+        $this->status = GameState::STATUS_MOVE;
     }
     
-    public function movePlayer($player_id, $ring, $index)
+    public function moveCurrentPlayer($ring, $index)
     {
-        if ($player_id == 999) {
-            $player_id = $this->currentPlayer;
-        }
-        if (!empty($this->players[$player_id])) {
-            $this->players[$player_id]->move(Board::getPosition($ring, $index));
+        $position = Board::getPosition($ring, $index);
+        $this->players[$this->currentPlayer]->currentPosition = $position;
+        if ($position->category != Category::REROLL) {
+            $this->status = GameState::STATUS_ANSWER;
         }
     }
     
-    public function scorePoints($success)
+    public function scorePoints($success, $points=null)
     {
-        if (!empty($this->players[$this->current_player])) {
-            $this->players[$player_id]->scorePoints($this->position, $success);
+        if ($success) {
+            $this->players[$this->currentPlayer]->scorePoints($points);
         }
+        if (!$success || !$this->winningSpree) {
+            $this->nextPlayer();
+        }
+        
+        $this->status = self::STATUS_ROLL;
     }
     
     public function nextPlayer($init=false)
@@ -212,16 +234,30 @@ class GameState
         if ($init) {
             $next = 0;
         } else {
-            $next = $this->players[$this->currentPlayer]->position + 1;
-            if ($next >= length($this->players)) {
+            $next = $this->players[$this->currentPlayer]->order + 1;
+            if ($next >= count($this->players)) {
                 $next = 0;
             }
+            $this->status = GameState::STATUS_ROLL;
         }
         foreach ($this->players as $index=>$player) {
-            if ($player->position == $next) {
+            if ($player->order == $next) {
                 $this->currentPlayer = $index;
                 break;
             }
+        }
+    }
+    
+    public function nextPlayerAfterDuel()
+    {
+        $clear = true;
+        foreach ($this->players as $player) {
+            if ($player->status == Player::STATUS_DUEL_WINNER || $player->status == Player::STATUS_DUEL_LOOSER) {
+                $clear = false;
+            }
+        }
+        if ($clear) {
+            $this->nextPlayer();
         }
     }
 }

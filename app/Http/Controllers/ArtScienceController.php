@@ -28,7 +28,7 @@ class ArtScienceController extends Controller
     public function create(Request $request)
     {
         $game_name = $request->input('game');
-        $host_name = $request->input('host');
+        $host_name = $request->input('name');
         
         return response()->json(GameStateComponent::createGame($game_name, $host_name) );
     }
@@ -56,9 +56,9 @@ class ArtScienceController extends Controller
     public function accept(Request $request)
     {
         $c = new GameStateComponent($request);
-        $pid = $request->input('pid');
+        $player = $request->input('player');
         
-        return response()->json($c->acceptPlayer($pid) );
+        return response()->json($c->acceptPlayer($player) );
     }
     
     /**
@@ -70,25 +70,53 @@ class ArtScienceController extends Controller
     public function reject(Request $request)
     {
         $c = new GameStateComponent($request);
-        $pid = $request->input('pid');
+        $player = $request->input('player');
         
-        return response()->json($c->rejectPlayer($pid) );
+        return response()->json($c->rejectPlayer($player) );
     }
 
     /**
      * player changes their name
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\Response|\Laravel\Lumen\Http\ResponseFactory
+     */
+    public function changePlayerName(Request $request)
+    {
+        $name = $request->input('name');
+        
+        $c = new GameStateComponent($request);
+        
+        return response()->json($c->changeName($pid, $name));
+    }
+    
+    /**
+     * host changes game name
      * 
      * @param Request $request
      * @return \Illuminate\Http\Response|\Laravel\Lumen\Http\ResponseFactory
      */
-    public function changeName(Request $request)
+    public function changeGameName(Request $request)
     {
-        $old = $request->input('old');
-        $new = $request->input('new');
+        $name = $request->input('name');
         
         $c = new GameStateComponent($request);
         
-        return response()->json($c->changeName($old, $new));
+        return response()->json($c->changeGameName($name));
+    }
+    
+    /**
+     * host sets flag to use Winning Spree rules
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function setWinningSpree(Request $request)
+    {
+        $c = new GameStateComponent($request);
+        
+        return response()->json($c->setWinningSpree($request->input('value')));
+        
     }
     
     /**
@@ -97,7 +125,7 @@ class ArtScienceController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\Response|\Laravel\Lumen\Http\ResponseFactory
      */
-    public function host(Request $request)
+    public function changeHost(Request $request)
     {
         $c = new GameStateComponent($request);
         $host = $request->input('name');
@@ -106,12 +134,12 @@ class ArtScienceController extends Controller
     }
 
     /**
-     * rearrange the order of the players
+     * host rearrange the order of the players
      * 
      * @param Request $request
      * @return \Illuminate\Http\Response|\Laravel\Lumen\Http\ResponseFactory
      */
-    public function reorder(Request $request)
+    public function reorderPlayers(Request $request)
     {
         $c = new GameStateComponent($request);
         $newOrder = explode(',',$request->input('players'));
@@ -120,50 +148,10 @@ class ArtScienceController extends Controller
     }
     
     /**
-     * each player sets their starting position
-     * 
+     * host sets the game length
      * @param Request $request
-     * @return \Illuminate\Http\Response|\Laravel\Lumen\Http\ResponseFactory
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function startingPosition(Request $request)
-    {
-        $c = new GameStateComponent($request);
-        $pid = $request->input('pid');
-        $ring = $request->input('ring');
-        $index = $request->input('index');
-        
-        return response()->json($c->startingPosition($pid, $ring, $index));
-    }
-    
-    /**
-     * host sets the starting player
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\Response|\Laravel\Lumen\Http\ResponseFactory
-     */
-    public function startingPlayer(Request $request)
-    {
-        $c = new GameStateComponent($request);
-        $pid = $request->input('player');
-        
-        return response()->json($c->startingPlayer($pid));
-    }
-    
-    /**
-     * each player selects their categories
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\Response|\Laravel\Lumen\Http\ResponseFactory
-     */
-    public function addCategories(Request $request)
-    {
-        $c = new GameStateComponent($request);
-        $pid = $request->input('pid');
-        $categories = explode(',', $request->input('categories'));
-        
-        return response()->json($c->addCategories($pid, $categories));
-    }
-    
     public function gameLength(Request $request)
     {
         $c = new GameStateComponent($request);
@@ -173,33 +161,56 @@ class ArtScienceController extends Controller
     }
     
     /**
-     * get current status of game
+     * Host skips the current player's turn
      * 
      * @param Request $request
-     * @return \Illuminate\Http\Response|\Laravel\Lumen\Http\ResponseFactory
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function poll(Request $request)
-    {
-        $c = new GameStateComponent($request);
-        
-        return response()->json($c->getGameState());
-    }
-    
-    /**
-     * skip a player's turn
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\Response|\Laravel\Lumen\Http\ResponseFactory
-     */
-    public function skipPlayersTurn(Request $request)
+    public function skipPlayer(Request $request)
     {
         $c = new GameStateComponent($request);
         
         return response()->json($c->skipPlayersTurn());
     }
-
+    
     /**
-     * role dice
+     * each player sets their starting position
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\Response|\Laravel\Lumen\Http\ResponseFactory
+     */
+    public function startPosition(Request $request)
+    {
+        $c = new GameStateComponent($request);
+        $ring = $request->input('ring');
+        $index = $request->input('index');
+        
+        return response()->json($c->startingPosition($ring, $index));
+    }
+  
+    /**
+     * each player selects their categories
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\Response|\Laravel\Lumen\Http\ResponseFactory
+     */
+    public function setCategories(Request $request)
+    {
+        $c = new GameStateComponent($request);
+        $categories = explode(',', $request->input('categories'));
+        
+        return response()->json($c->addCategories($categories));
+    }
+
+    public function gameStatus(Request $request)
+    {
+        $c = new GameStateComponent($request);
+
+        return response()->json($c->gameStatus($request->input('status')));
+    }
+    
+    /**
+     * roll dice
      * 
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -209,16 +220,6 @@ class ArtScienceController extends Controller
         $c = new GameStateComponent($request);
         
         return response()->json($c->rollDice());
-    }
-    
-    public function startPosition(Request $request)
-    {
-        $c = new GameStateComponent($request);
-        $pid = $request->input('pid');
-        $ring = $request->input('ring');
-        $index = $request->input('index');
-        
-        return response()->json($c->movePlayer($ring, $index, $pid));
     }
 
     /**
@@ -236,18 +237,74 @@ class ArtScienceController extends Controller
         return response()->json($c->movePlayer($ring, $index));
     }
 
+    /**
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function scorePoints(Request $request)
     {
         $c = new GameStateComponent($request);
-        
         $success = $request->input('success');
+        $points = $request->input('points', 0);
         
-        return response()->json($c->scorePoints($success));
+        return response()->json($c->scorePoints($success, $points));
+    }
+    
+    public function selectDuel(Request $request)
+    {
+        $c = new GameStateComponent($request);
+        
+        return response()->json($c->selectDuel($request->input('opponent')));
+    }
+    
+    public function endDuel(Request $request)
+    {
+        $c = new GameStateComponent($request);
+        $winner = $request->input('winner');
+        $looser = $request->input('looser');
+        $draw = $request->input('draw');
+    
+        return response()->json($c->endDuel($winner, $looser, $draw));
+    }
+    
+    public function scoreDuel(Request $request)
+    {
+        $c = new GameStateComponent($request);
+        $scoring = $request->input('scoring');
+        
+        return response()->json($c->scoreDuel($scoring));
     }
 
+    
+    public function scoreGenius(Request $request)
+    {
+        $c = new GameStateComponent($request);
+        $scoring = $request->input('scoring');
+        
+        return response()->json($c->scoreGenius($scoring));
+    }
+    
+    /**
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function undo(Request $request)
     {
-        return response()->json($this->gameState);
+        $c = new GameStateComponent($request);
+
+        return response()->json($c->undo());
+    }
+    
+    /**
+     * 
+     * @param Request $request
+     */
+    public function listHistory(Request $request)
+    {
+        $c = new GameStateComponent($request);
+        return response()->json($c->fetchHistory() );
     }
 }
 

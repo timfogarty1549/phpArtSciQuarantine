@@ -8,6 +8,10 @@ class Player
     const STATUS_PAUSED = 'PAUSED';
     const STATUS_QUIT = 'QUIT';
 
+    const STATUS_DUEL_WINNER = 'DUEL_WINNER';
+    const STATUS_DUEL_LOOSER = 'DUEL_LOOSER';
+    const STATUS_GENIUS_WINNER = 'GENIUS_WINNER';
+    
     /**
      * 
      * @var string
@@ -51,11 +55,14 @@ class Player
             foreach ($obj['categories'] as $category) {
                 $this->categories[] = new Category($category, 0, 0);
             }
+            $this->currentPosition = new Position($obj['currentPosition']);
+            
         } else {
             $this->status = self::STATUS_PENDING;
             $this->name = $obj;
             $this->order = $order;
             $this->categories = [];
+            $this->currentPosition = null;
         }
     }
     
@@ -88,9 +95,28 @@ class Player
         }
     }
     
-    function scorePoints($tag, $points) 
+    function scorePoints($points=null) 
     {
-        $this->categories[$tag]->addPoints($points);
+        $tag = $this->currentPosition->category;
+        if (!$points) {
+            $points = $this->currentPosition->points;
+        }
+        
+        foreach ($this->categories as $index=>$category) {
+            if ($category->cat == $tag) {
+                $this->categories[$index]->addPoints($points);
+            }
+        }
+        
+        return $this->isWinner();
+    }
+    
+    function isWinner() {
+        foreach ($this->categories as $category) {
+            if (!$category->locked) return false;
+        }
+        
+        return true;
     }
 }
 

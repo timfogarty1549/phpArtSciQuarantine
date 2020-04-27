@@ -25,7 +25,7 @@ class Board
      *
      * @var Position[]
      */
-    static private $outer_ring;
+    static private $outerRing;
     
     static private function initPositions()
     {
@@ -128,23 +128,23 @@ class Board
         self::initPositions();
     
         switch($r) {
-            case 0: return self::$innerRing($i);
-            case 1: return self::$bridge($i);
-            case 2: return self::$outerRing($i);
+            case 0: return self::$innerRing[$i];
+            case 1: return self::$bridge[$i];
+            case 2: return self::$outerRing[$i];
         }
     }
     
-    static public function findMoves($r, $p, $dice)
+    static public function findMoves(Position $position, $dice)
     {
         self::initPositions();
         
-        switch ($r) {
+        switch ($position->ring) {
             case 0:
-                return self::calcFromInnerRing($p, $dice);
+                return self::calcFromInnerRing($position->index, $dice);
             case 1:
-                return self::calcFromMiddleRing($p, $dice);
+                return self::calcFromMiddleRing($position->index, $dice);
             case 2:
-                return self::calcFromOuterRing($p, $dice);
+                return self::calcFromOuterRing($position->index, $dice);
         }
     }
     
