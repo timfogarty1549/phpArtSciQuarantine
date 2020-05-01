@@ -113,18 +113,18 @@ class GameStateComponent
      * @param string $host_name
      * @return []
      */
-    static public function createGame($game_name, $host_name)
+    static public function createGame($game_name, $length, $spree, $host_name, $uuid)
     {
         $game_code = substr(str_shuffle('ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'), 0, 5);
         
         try {
             Game::where(compact('game_code'))->firstOrFail();        // random code already exists
             
-            return self::createGame($game_name, $host_name);        // try again
+            return self::createGame($game_name, $length, $spree, $host_name, $uuid);        // try again
             
         } catch (\Exception $e) {
             $game = new Game();
-            $game->gameState = GameState::create($game_code, $game_name, $host_name);
+            $game->gameState = GameState::create($game_code, $game_name, $length, $spree, $host_name, $uuid);
             $game->game_code = $game_code;
             $game->save();
             
@@ -139,20 +139,20 @@ class GameStateComponent
      * @param string $player
      * @return string
      */
-    static public function addPlayer($game_code, $name)
+    static public function addPlayer($game_code, $name, $uuid)
     {
         try {
             $game = Game::where(compact('game_code'))->firstOrFail();
             $gameState = $game->gameState;
-            $gameState->addPlayer($name);
+            $gameState->addPlayer($name, $uuid);
             $game->gameState = $gameState;
             $game->save();
             
-            return self::status('Request pending');
+            return self::statusMsg('Request pending');
             
         } catch (\Exception $e) {
             dd($e);
-            return self::status('Unknown game', $e->getMessage(), $e->getFile(), $e->getLine()) ;
+            return self::statusMsg('Unknown game', $e->getMessage(), $e->getFile(), $e->getLine()) ;
         }
     }
     

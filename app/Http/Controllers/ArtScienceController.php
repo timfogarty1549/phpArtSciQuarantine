@@ -27,10 +27,13 @@ class ArtScienceController extends Controller
      */
     public function create(Request $request)
     {
-        $game_name = $request->input('game');
-        $host_name = $request->input('name');
+        $game = $request->input('game');
+        $host = $request->input('host');
+        $uuid = $request->input('uuid');
+        $length = $request->input('length', 0);
+        $spree = $request->input('spree', false);
         
-        return response()->json(GameStateComponent::createGame($game_name, $host_name) );
+        return response()->json(GameStateComponent::createGame($game, $length, $spree, $host, $uuid) );
     }
 
     /**
@@ -43,8 +46,9 @@ class ArtScienceController extends Controller
     {
         $game_code = $request->input('game');
         $name = $request->input('name');
+        $uuid = $request->input('uuid');
         
-        return response()->json(GameStateComponent::addPlayer($game_code, $name) );
+        return response()->json(GameStateComponent::addPlayer($game_code, $name, $uuid) );
     }
 
     /**

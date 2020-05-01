@@ -31,6 +31,11 @@ class Player
     public $order;
     
     /**
+     * @var string
+     */
+    public $uuid;
+    
+    /**
      *
      * @var string[]
      */
@@ -43,7 +48,7 @@ class Player
     public $currentPosition;
     
     
-    function __construct($obj, $order=-1)
+    function __construct($obj, $uuid=null, $order=-1)
     {
         if (is_null($obj)) {
             
@@ -51,6 +56,7 @@ class Player
             $this->status = $obj['status'];
             $this->name = $obj['name'];
             $this->order = $obj['order'];
+            $this->uuid = $obj['uuid'];
             $this->categories = [];
             foreach ($obj['categories'] as $category) {
                 $this->categories[] = new Category($category, 0, 0);
@@ -61,6 +67,7 @@ class Player
             $this->status = self::STATUS_PENDING;
             $this->name = $obj;
             $this->order = $order;
+            $this->uuid = $uuid;
             $this->categories = [];
             $this->currentPosition = null;
         }

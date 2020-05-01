@@ -9,8 +9,8 @@ class GameState
     const STATUS_ENDED = 'ENDED';
     
     const STATUS_ROLL = 'ROLL';
-    const STATUS_MOVE = 'SELECT_MOVE';
-    const STATUS_ANSWER = 'ANSWER_QUESTION';
+    const STATUS_MOVE = 'MOVE';
+    const STATUS_ANSWER = 'QUESTION';
     const STATUS_DUEL = 'DUEL';
     const STATUS_REPLICATION = 'REPLICATION';
     
@@ -124,15 +124,16 @@ class GameState
      * @param string $game_name
      * @param string $host_name
      */
-    static public function create($game_code, $game_name, $host_name)
+    static public function create($game_code, $game_name, $length, $spree, $host_name, $uuid)
     {
         $game = new GameState();
         $game->gameCode = $game_code;
         $game->gameName = $game_name;
-        $game->gameLength = 0;
+        $game->gameLength = $length;
+        $game->winningSpree = $spree;
         $game->status = GameState::STATUS_PENDING;
 
-        $game->players = [ new Player($host_name, 0) ];
+        $game->players = [ new Player($host_name, $uuid, 0) ];
         $game->players[0]->accept();
         $game->hostId = 0;
         $game->dice = new Dice();
@@ -149,8 +150,8 @@ class GameState
      * 
      * @param string $player_name
      */
-    public function addPlayer($player_name) {
-        $this->players[] = new Player($player_name, count($this->players));
+    public function addPlayer($player_name, $uuid) {
+        $this->players[] = new Player($player_name, $uuid, count($this->players));
     }
     
     public function acceptPlayer($player_id)
