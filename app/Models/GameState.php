@@ -1,8 +1,12 @@
 <?php
 namespace App\Models;
 
+use App\Exceptions\PlayerNotFoundException;
+
 class GameState
 {
+    const STATUS_WAITING_FOR_PLAYERS = 'WAITING';
+    const STATUS_WAITING_FOR_APPROVAL = "APPROVE";
     const STATUS_PENDING  = 'PENDING';
     const STATUS_ACTIVE = 'ACTIVE';
     const STATUS_PAUSED = 'PAUSED';
@@ -131,9 +135,9 @@ class GameState
         $game->gameName = $game_name;
         $game->gameLength = $length;
         $game->winningSpree = $spree;
-        $game->status = GameState::STATUS_PENDING;
+        $game->status = GameState::STATUS_WAITING_FOR_PLAYERS;
 
-        $game->players = [ new Player($host_name, $uuid, 0) ];
+        $game->players = [ new Player($host_name, $uuid, 0, $length) ];
         $game->players[0]->accept();
         $game->hostId = 0;
         $game->dice = new Dice();
@@ -146,31 +150,78 @@ class GameState
         $this->status = GameState::STATUS_ACTIVE;
         $this->nextPlayer(true);
     }
+    
+    
+    public function findPlayer($uuid) {
+        foreach( $this->players as $i=>$player) {
+            if ($player->uuid == $uuid) return $i;
+        }
+        return -1;
+    }
+    
+    
     /**
      * 
      * @param string $player_name
      */
     public function addPlayer($player_name, $uuid) {
-        $this->players[] = new Player($player_name, $uuid, count($this->players));
+        $player_id = $this->findPlayer($uuid, $this->players);
+        if ($player_id == -1 ) {
+            $this->players[] = new Player($player_name, $uuid, count($this->players), $this->gameLength);
+        } else {
+            $this->players[$player_id]->name = $player_name;
+        }
+    
+        $this->checkPendingStatus();
     }
     
-    public function acceptPlayer($player_id)
+    public function acceptPlayer($uuid)
     {
-        if (!empty($this->players[$player_id])) {
+        $player_id = $this->findPlayer($uuid);
+        if ($player_id == -1) {
+            throw new PlayerNotFoundException($uuid);
+        } else {
             $this->players[$player_id]->accept();
         }
+
+        $this->checkPendingStatus();
     }
     
-    public function rejectPlayer($player_id)
+    public function rejectPlayer($uuid)
     {
-        if (!empty($this->players[$player_id])) {
-//            $this->players[$player_id] = null;
+        $player_id = $this->findPlayer($uuid);
+        if ($player_id == -1) {
+            throw new PlayerNotFoundException($uuid);
+        } else {
             unset($this->players[$player_id]);          // TODO: this will mess up the numbering, need player id
+        }
+
+        $this->checkPendingStatus();
+    }
+    
+//     public function playerQuit($uuid) {
+        
+//     }
+    
+    private function checkPendingStatus() {
+        foreach( $this->players as $player) {
+            if ($player->status == Player::STATUS_PENDING) {
+                $this->status = self::STATUS_WAITING_FOR_APPROVAL;
+                return;
+            }
+        }
+        if (count($this->players) == 1) {
+            $this->status = self::STATUS_WAITING_FOR_PLAYERS;
+        } else {
+            $this->status = self::STATUS_PENDING;
         }
     }
     
-    public function changeHost($player_id) {
-        if (!empty($this->players[$player_id])) {
+    public function changeHost($uuid) {
+        $player_id = $this->findPlayer($uuid);
+        if ($player_id == -1) {
+            throw new PlayerNotFoundException($uuid);
+        } else {
             $this->host_id = $player_id;
         }
     }
@@ -181,23 +232,43 @@ class GameState
         }
     }
     
-    public function addCategories($player_id, $categories)
+    public function changeGameLength($length) {
+        $this->gameLength = $length;
+        foreach ($this->players as $player) {
+            $player->initCategories($length);
+        }
+    }
+    
+    public function addCategories($uuid, $categories)
     {
-        if (!empty($this->players[$player_id])) {
+        $player_id = $this->findPlayer($uuid);
+        if ($player_id == -1) {
+            throw new PlayerNotFoundException($uuid);
+        } else {
             $this->players[$player_id]->addCategories($categories, $this->gameLength);
         }
     }
    
     
-    public function setInitPosition($player_id, $ring, $index)
+    public function setInitPosition($uuid, $ring, $index)
     {
-        $position = Board::getPosition($ring, $index);
-        $this->players[$player_id]->currentPosition = $position;
+        $player_id = $this->findPlayer($uuid);
+        if ($player_id == -1) {
+            throw new PlayerNotFoundException($uuid);
+        } else {
+            $position = Board::getPosition($ring, $index);
+            $this->players[$player_id]->currentPosition = $position;
+        }
     }
     
-    public function setStartingPlayer($player_id)
+    public function setStartingPlayer($uuid)
     {
-        $this->currentPlayer = $player_id;
+        $player_id = $this->findPlayer($uuid);
+        if ($player_id == -1) {
+            throw new PlayerNotFoundException($uuid);
+        } else {
+            $this->currentPlayer = $player_id;
+        }
     }
     
     public function rollDice()

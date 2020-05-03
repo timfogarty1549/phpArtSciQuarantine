@@ -7,28 +7,32 @@ use App\Models\Game;
 use Illuminate\Http\Request;
 use App\Models\Player;
 use App\Models\Category;
+use App\Exceptions\ArtScienceException;
+use App\Exceptions\NotHostException;
+use App\Exceptions\PlayerNotFoundException;
+use App\Exceptions\NotYourTurnException;
 
 class GameStateComponent
 {
-    const STATUS_NOT_HOST = "NOT_HOST";
-    const STATUS_NOT_YOUR_TURN = "NOT_YOUR_TURN";
     const STATUS_WRONG_STATE = "WRONG_STATE";
+    const STATUS_JOIN_PENDING = "PENDING";
     const STATUS_SET_LENGTH_FIRST = "SET_LENGTH_FIRST";
     const STATUS_WRONG_NUM_CAT = "WRONG_NUM_CATEGORIES";
     
     /**
-     * 
+     * uuid of the player making the request
+     * @var string
+     */
+    private $uuid;
+    
+    /**
+     * index of the player making the request
      * @var integer
      */
     private $player_id;
     
     /**
-     * 
-     * @var array
-     */
-    var $params;
-    
-    /**
+     * id of the game
      * @var string
      */
     private $gameId;
@@ -47,46 +51,63 @@ class GameStateComponent
     public function __construct(Request $request)
     {
         /*
-         * TODO: get gameId and playerId from JWT
+         * TODO: get gameId and uuid/playerId from JWT
          */
-        $this->gameId = $request->input('id');
+        $this->gameId = strtoupper($request->input('game'));
         if ($this->gameId) {
-            $this->params = $request->input();
-            $this->player_id = $request->input('pid', -1);
             try {
-                $this->game = Game::find($this->gameId);
+                $this->game = Game::where('game_code', $this->gameId)->firstOrFail();
                 $this->gameState = $this->game->gameState;
                 
             } catch (\Exception $e) {
-                dd($e);
-                throw new UnknownGameException();
+                throw new UnknownGameException($this->gameId);
             }
+            $this->uuid = $request->input('uuid', '');
+            $this->player_id = $this->gameState->findPlayer($this->uuid);
         }
     }
-    
+
     public function getGameState()
     {
         return $this->gameState;
     }
     
-    public function isHost()
+    public function isHost($throw=true)
     {
-        return $this->player_id == $this->gameState->hostId;
+        $flag = $this->player_id == $this->gameState->hostId;
+        
+        if (!$flag && $throw) {
+            throw new NotHostException();
+        }
+        
+        return $flag;
     }
     
-    public function isCurrentPlayer()
+    public function isCurrentPlayer($throw = false)
     {
-        return $this->player_id == $this->gameState->currentPlayer;
+        $flag = $this->player_id == $this->gameState->currentPlayer;
+        
+        if (!$flag && $throw) {
+            throw NotYourTurnException();
+        }
     }
     
+    public function isValidPlayer($throw=true) {
+        $flag = $this->player_id != -1;
+        
+        if( !$flag && $throw) {
+            throw new PlayerNotFoundException($this->uuid);
+        }
+    }
     /**
      * 
      * @param string $status
      * @return array
      */
-    static private function statusMsg($status, $message=null, $file=null, $line=null)
+    static private function statusMsg($tag, $message=null)
     {
-        return compact('status','file', 'line', 'message');
+        $status = 'ERROR';
+        return compact('status', 'tag', 'message');
     }
     
     /**
@@ -143,17 +164,16 @@ class GameStateComponent
     {
         try {
             $game = Game::where(compact('game_code'))->firstOrFail();
-            $gameState = $game->gameState;
-            $gameState->addPlayer($name, $uuid);
-            $game->gameState = $gameState;
-            $game->save();
-            
-            return self::statusMsg('Request pending');
-            
         } catch (\Exception $e) {
-            dd($e);
-            return self::statusMsg('Unknown game', $e->getMessage(), $e->getFile(), $e->getLine()) ;
+            throw new UnknownGameException($game_code);
         }
+
+        $gameState = $game->gameState;
+        $gameState->addPlayer($name, $uuid);
+        $game->gameState = $gameState;
+        $game->save();
+        
+        return self::statusMsg(self::STATUS_JOIN_PENDING);
     }
     
     /**
@@ -162,15 +182,12 @@ class GameStateComponent
      * @param integer $player_id
      * @return string
      */
-    public function acceptPlayer($player_id)
+    public function acceptPlayer($uuid)
     {
-        if ($this->isHost()) {
-            $this->gameState->acceptPlayer($player_id);
-            return $this->save();
-            
-        } else {
-            return $this->statusMsg(self::STATUS_NOT_HOST);
-        }
+        
+        $this->isHost();
+        $this->gameState->acceptPlayer($uuid);
+        return $this->save();
     }
     
     /**
@@ -181,13 +198,9 @@ class GameStateComponent
      */
     public function rejectPlayer($player_id)
     {
-        if ($this->isHost()) {
-            $this->gameState->rejectPlayer($player_id);
-            return $this->save();
-            
-        } else {
-            return $this->statusMsg(self::STATUS_NOT_HOST);
-        }
+        $this->isHost();
+        $this->gameState->rejectPlayer($player_id);
+        return $this->save();
     }
     
     
@@ -200,7 +213,7 @@ class GameStateComponent
      */
     public function changePlayersName($player_id, $name)
     {
-        if (!$this->isHost()) {
+        if (!$this->isHost(false)) {
             $player_id = $this->player_id;
         }
         $this->gameState->changePlayersName($player_id, $name);
@@ -216,26 +229,18 @@ class GameStateComponent
      */
     public function changeGameName($name)
     {
-        if ($this->isHost()) {
-            $this->gameState->gameName = $name;
+        $this->isHost();
+        $this->gameState->gameName = $name;
             
-            return $this->save();
-            
-        } else {
-            return $this->statusMsg(self::STATUS_NOT_HOST);
-        }
+        return $this->save();
     }
     
     public function setWinningSpree($flag)
     {
-        if ($this->isHost()) {
-            $this->gameState->winningSpree = $flag;
+        $this->isHost();
+        $this->gameState->winningSpree = $flag;
             
-            return $this->save();
-
-        } else {
-            return $this->statusMsg(self::STATUS_NOT_HOST);
-        }
+        return $this->save();
     }
     
     /**
@@ -246,14 +251,10 @@ class GameStateComponent
      */
     public function changeHost($player_id)
     {
-        if ($this->isHost()) {
-            $this->gameState->hostId = $player_id;
+        $this->isHost();
+        $this->gameState->hostId = $player_id;
             
-            return $this->save();
-            
-        } else {
-            return $this->statusMsg(self::STATUS_NOT_HOST);
-        }
+        return $this->save();
     }
     
     /**
@@ -264,14 +265,10 @@ class GameStateComponent
      */
     public function changeOrder($newOrder)
     {
-        if ($this->isHost()) {
-            $this->gameState->changeOrder($newOrder);
-            
-            return $this->save();
-            
-        } else {
-            return $this->statusMsg(self::STATUS_NOT_HOST);
-        }
+        $this->isHost();
+        $this->gameState->changeOrder($newOrder);
+
+        return $this->save();
     }
     
     /**
@@ -282,20 +279,17 @@ class GameStateComponent
      */
     public function gameLength($length)
     {
-        if ($this->isHost()) {
-            if ($this->gameState->status == GameState::STATUS_PENDING) {
-                $this->gameState->gameLength = (int) $length;
+        $this->isHost();
+
+        if ($this->gameState->status == GameState::STATUS_PENDING) {
+            $this->gameState->changeGameLength( (int) $length );
                 
-                return $this->save();
+            return $this->save();
                 
-            } else {
-                return $this->statusMsg(self::STATUS_WRONG_STATE);
-            }
-            
         } else {
-            return $this->statusMsg(self::STATUS_NOT_HOST);
+            return $this->statusMsg(self::STATUS_WRONG_STATE);
         }
-    }
+     }
     
     /**
      * Host sets the status of the game
@@ -304,7 +298,7 @@ class GameStateComponent
      */
     public function gameStatus($status)
     {
-        if ($this->isHost()) {
+        if ($this->isHost(false)) {
             if ($status == "START") {
                 $this->gameState->startGame();      // set to ACTIVE and set currentPlayer
             } else {
@@ -327,6 +321,8 @@ class GameStateComponent
      */
     public function startingPosition($ring, $index)
     {
+        $this->isValidPlayer();
+
         $this->gameState->setInitPosition($this->player_id, $ring, $index);
         
         return $this->save();
@@ -340,14 +336,10 @@ class GameStateComponent
      */
     public function startingPlayer($player_id)
     {
-        if ($this->isHost()) {
-            $this->gameState->setStartingPlayer($player_id);
+        $this->isHost();
+        $this->gameState->setStartingPlayer($player_id);
             
-            return $this->save();
-            
-        } else {
-            return $this->statusMsg(self::STATUS_NOT_HOST);
-        }
+        return $this->save();
     }
     
     /**
@@ -359,7 +351,9 @@ class GameStateComponent
      */
     public function addCategories($categories)
     {
-        if ($this->gameState->gameLength == 0) {
+        $this->isValidPlayer();
+        
+        if ($this->gameState->gameLength < 0) {
             return $this->statusMsg(self::STATUS_SET_LENGTH_FIRST);
 
         } else if (count($categories) == Category::NUM_CATS[$this->gameState->gameLength]) {
@@ -367,7 +361,8 @@ class GameStateComponent
             
             return $this->save();
         } else {
-            return $this->statusMsg(self::STATUS_WRONG_NUM_CAT);
+            $msg = "=> ".$this->gameState->gameLength. " ". Category::NUM_CATS[$this->gameState->gameLength]. " ".count($categories);
+            return $this->statusMsg(self::STATUS_WRONG_NUM_CAT, $msg);
         }
     }
     
@@ -377,14 +372,10 @@ class GameStateComponent
      * @return string
      */
     public function skipPlayersTurn() {
-        if ($this->isHost()) {
-            $this->gameState->nextPlayer();
+        $this->isHost();
+        $this->gameState->nextPlayer();
             
-            return $this->save();
-            
-        } else {
-            return $this->statusMsg(self::STATUS_NOT_HOST);
-        }
+        return $this->save();
     }
     
     /**
@@ -394,17 +385,14 @@ class GameStateComponent
      */
     public function rollDice()
     {
-        if ($this->isCurrentPlayer()) {
-            if ($this->gameState->status == GameState::STATUS_ROLL) {
-                $this->gameState->rollDice();
-                
-                return $this->save();
+        $this->isCurrentPlayer();
+        if ($this->gameState->status == GameState::STATUS_ROLL) {
+            $this->gameState->rollDice();
+            
+            return $this->save();
 
-            } else {
-                return $this->statusMsg(self::STATUS_WRONG_STATE);
-            }
         } else {
-            return $this->statusMsg(self::STATUS_NOT_YOUR_TURN);
+            return $this->statusMsg(self::STATUS_WRONG_STATE);
         }
     }
     
@@ -417,14 +405,10 @@ class GameStateComponent
      */
     public function movePlayer($ring, $index)
     {
-        if ($this->isCurrentPlayer()) {
-            $this->gameState->moveCurrentPlayer($ring, $index);
+        $this->isCurrentPlayer();
+        $this->gameState->moveCurrentPlayer($ring, $index);
     
-            return $this->save();
-            
-        } else {
-            return $this->statusMsg(self::STATUS_NOT_YOUR_TURN);
-        }
+        return $this->save();
     }
     
     /**
@@ -436,17 +420,14 @@ class GameStateComponent
      */
     public function scorePoints($success, $points=null)
     {
-        if ($this->isHost()) {
-            $gameOver = $this->gameState->scorePoints($success, $points);
+        $this->isHost();
+        $gameOver = $this->gameState->scorePoints($success, $points);
             
-            if ($gameOver) {
-                $this->gameState->status = GameState::STATUS_ENDED;
-            }
-            
-            return $this->save();
-        } else {
-            return $this->statusMsg(self::STATUS_NOT_HOST);
+        if ($gameOver) {
+            $this->gameState->status = GameState::STATUS_ENDED;
         }
+        
+        return $this->save();
     }
     
     /**
@@ -490,7 +471,8 @@ class GameStateComponent
             return $this->save();
             
         } else {
-            return $this->statusMsg(self::STATUS_NOT_HOST);
+            throw new NotHostException();
+
         }
     }
     
@@ -527,7 +509,8 @@ class GameStateComponent
             }
             
         } else {
-            return $this->statusMsg(self::STATUS_NOT_HOST);
+            throw new NotHostException();
+
         }
     }
     

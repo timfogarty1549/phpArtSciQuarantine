@@ -36,6 +36,17 @@ class Player
     public $uuid;
     
     /**
+     * 
+     * @var string
+     */
+    public $color;
+    
+    /**
+     * @var string
+     */
+    public $icon;
+    
+    /**
      *
      * @var string[]
      */
@@ -48,7 +59,7 @@ class Player
     public $currentPosition;
     
     
-    function __construct($obj, $uuid=null, $order=-1)
+    function __construct($obj, $uuid=null, $order=-1, $length=0, $color='red', $icon='\uF047')
     {
         if (is_null($obj)) {
             
@@ -57,9 +68,14 @@ class Player
             $this->name = $obj['name'];
             $this->order = $obj['order'];
             $this->uuid = $obj['uuid'];
+            $this->color = $obj['color'];
+            $this->icon = $obj['icon'];
+            
             $this->categories = [];
-            foreach ($obj['categories'] as $category) {
-                $this->categories[] = new Category($category, 0, 0);
+            if (!empty($obj['categories'])) {               // should not be necessary if created correctly - find bug
+                foreach ($obj['categories'] as $category) {
+                    $this->categories[] = new Category($category, 0, 0);
+                }
             }
             $this->currentPosition = new Position($obj['currentPosition']);
             
@@ -68,8 +84,11 @@ class Player
             $this->name = $obj;
             $this->order = $order;
             $this->uuid = $uuid;
-            $this->categories = [];
+            $this->color = $color;
+            $this->icon = $icon;
             $this->currentPosition = null;
+            $this->categories = [];
+            $this->initCategories($length);
         }
     }
     
@@ -100,6 +119,22 @@ class Player
         foreach ($categories as $index=>$tag) {
             $this->categories[$tag] = new Category($tag, $index, $length);
         }
+    }
+    
+    function initCategories($length) {
+        $numCat = Category::NUM_CATS[$length];
+        $len = count($this->categories);
+        if ($len > $numCat) {
+            $this->categories = array_slice($player->categories, 0, $numCat);
+        }
+        for ($i=0; $i<$numCat; $i++) {
+            if ($i < $len) {
+                $this->categories->updateGoal($i, $length);
+            } else {
+                $this->categories[] = new Category('', $i, $length);
+            }
+        }
+        
     }
     
     function scorePoints($points=null) 

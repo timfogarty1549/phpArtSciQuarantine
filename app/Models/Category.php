@@ -41,7 +41,8 @@ class Category
     public $goal;
     public $locked;
     
-    function __construct($cat, $position=-1, $gameLength=-1) {
+    function __construct($cat, $position=-1, $gameLength=-1)
+    {
         if (is_null($cat)) {
             $this->cat = '';
             $this->score = 0;
@@ -62,12 +63,18 @@ class Category
         }
     }
     
-    function addPoints($score) {
+    function addPoints($score)
+    {
         if (!$this->locked) {
             $this->score = max( 0, min($this->score + $score, $this->goal));
         
             $this->locked = $this->score >= $this->goal;
         }
+    }
+    
+    function updateGoal($position, $gameLength)
+    {
+        $this->goal = self::POINTS[$position][$gameLength];
     }
 }
 

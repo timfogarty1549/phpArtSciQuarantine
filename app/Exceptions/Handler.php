@@ -49,6 +49,14 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
+        if (is_subclass_of($exception, 'App\Exceptions\ArtScienceException')) {
+            return response()->json([
+                'status' => 'ERROR',
+                'tag' => $exception->getTag(),
+                'message' => $exception->getMessage()
+            ], 200 );
+        }
+        
         return parent::render($request, $exception);
     }
 }
